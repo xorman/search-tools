@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-#!python.exe
 """ A tool that generates and invokes `find` and `grep` commands. """
 ########################################################################
 # Description  : Please refer to the command line help (-h)
@@ -89,8 +88,8 @@ def parse_arguments(self):
     parser = argparse.ArgumentParser(
         description = "Offline search for files and file content using a short command. "
                       "This script generates and invokes a tailored `find` and "
-                      "`grep` command with a selection of flags activated by "
-                      "default. Some flags increase the search speed but might "
+                      "`grep` command with a selection of switches activated by "
+                      "default. Some switches increase the search speed but might "
                       "also exclude relevant findings. For instance, option -g by default "
                       "only searches patterns in files with " + self.grep_file_size_threshold,
         epilog = 'Examples: ' + self.name + " . '*.txt' --grep pattern "
@@ -342,13 +341,13 @@ def execute_and_print_stdout_while_running(command):
                                stderr=subprocess.STDOUT)
     while True:
         try:
-            line = process.stdout.readline().decode('utf-8')
+            line = process.stdout.readline()
             if process.poll() is not None and '' == line:
                 break
             sys.stdout.write(line)
             sys.stdout.flush()
         except:
-            sys.stderr.write('ERROR: cannot process character encoding properly\n')
+            sys.stderr.write('Cannot process line properly\n')
 
 
 def get_user_input():
