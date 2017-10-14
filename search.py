@@ -341,7 +341,7 @@ def execute_and_print_stdout_while_running(command):
                                stderr=subprocess.STDOUT)
     while True:
         try:
-            line = process.stdout.readline()
+            line = process.stdout.readline().decode('utf-8')
             if process.poll() is not None and '' == line:
                 break
             sys.stdout.write(line)
