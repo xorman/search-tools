@@ -86,12 +86,13 @@ def parse_arguments(self):
     input.
     """
     parser = argparse.ArgumentParser(
-        description = "Offline search for files and file content using a short command. "
-                      "This script generates and invokes a tailored `find` and "
-                      "`grep` command with a selection of switches activated by "
-                      "default. Some switches increase the search speed but might "
-                      "also exclude relevant findings. For instance, option -g by default "
-                      "only searches patterns in files with " + self.grep_file_size_threshold,
+        description = 'Offline search tool for files and file content of files that are not indexed. '
+                      'The goal of this tool is to keep the search command as short as possible. The '
+                      'script generates (arg -s) and invokes a tailored `find` and `grep` command '
+                      'with a selection of switches enabled by default. Some switches should '
+                      'increase the search speed but might also exclude relevant search results. For '
+                      'instance, argument -g only searches patterns in files with ' + 
+                      self.grep_file_size_threshold,
         epilog = 'Examples: ' + self.name + " . '*.txt' --grep pattern "
                 + '________________________________ '
                 + self.name + " -s > s.sh; chmod +x s.sh; ./s.sh"
@@ -106,11 +107,14 @@ def parse_arguments(self):
                         help='File pattern that is passed to `find`')
     parser.add_argument('-g', '--grep', help='File content search of pattern (passed to `grep`)', 
                         action='store')
-    parser.add_argument('-d', '--default-path', help='Reads a list of search paths from a config '
-                        'file that is identified by name DEFAULT_PATH and stored in ' + 
-                        self.paths_config_path + '. Then, runs the generated command for each '
-                        'path. Overwrites search_path. Asks for interactive creation of the config '
-                        'file if it does not exist.', action='store', nargs='?', const='default-list')
+    parser.add_argument('-d', '--default-path-file', help='Reads a list of search paths from a config '
+                        'file named DEFAULT_PATH_FILE and stored in ' + self.paths_config_path + 
+                        '. Then, runs the generated command for each path. '
+                        'Asks for interactive creation of the config file if it doesn\'t exist. '
+                        'If the positional arg file_pattern is used, the arg search_path remains '
+                        'mandatory but will be overwritten by the list created through -d arg. '
+                        'E.g. ' + self.name + ' . \'*.xyz\' -s -d'
+                        , action='store', nargs='?', const='default-list')
     parser.add_argument('-f', '--file-type', help='Select a search file type (= file extensions + size). ' +
                         'Supports comma separated list. Prints list of available types if FILE_TYPE is unknown.') #,
                         #action='store', choices=self.file_type_choices)
@@ -425,8 +429,8 @@ def main():
         search.grep_arg += '--after-context=' + search.args.more_context + ' '
 
     # Search path(s) =================================
-    if search.args.default_path is not None:
-        search.parse_default_paths_from_file( search.args.default_path ) 
+    if search.args.default_path_file is not None:
+        search.parse_default_paths_from_file( search.args.default_path_file ) 
     else:
         search.paths = [ search.args.search_path ]
 
