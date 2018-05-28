@@ -33,6 +33,7 @@ import argparse
 import os
 import platform
 import subprocess
+import shlex 
 __author__  = 'Norman MEINZER'
 __email__   = 'meinzer.norman@gmail.com'
 __twitter__ = 'https://twitter.com/xor_man'
@@ -131,7 +132,6 @@ def parse_arguments(self):
                         action='store_true')
     self.args = parser.parse_args()
     
-    # Validate input / prevent command injection
     self.args.search_path = self.args.search_path.replace('"', '\\"')
     self.args.file_pattern = self.args.file_pattern.replace('"', '\\"')
     if self.args.grep:
@@ -282,7 +282,7 @@ def parse_default_paths_from_file(self, id):
     try:
         tmp_file = open(file_name)
         for path in tmp_file:
-            path_to_add = path.rstrip().replace('"', '\\"') # prevent command injection
+            path_to_add = path.rstrip().replace('"', '\\"') 
             path_to_add = os.path.expanduser( path_to_add )
             self.paths += [ path_to_add ]
     except:
@@ -341,8 +341,8 @@ def execute_and_print_stdout_while_running(command):
     output of the sub process while it is running. Returns 
     after the sub process exited.
     """
-    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, 
-                               stderr=subprocess.STDOUT)
+    process = subprocess.Popen(shlex.split(command), shell=False, stdout=subprocess.PIPE, 
+                               stderr=subprocess.STDOUT) # ^-- prevent command injection
     while True:
         try:
             line = process.stdout.readline().decode('utf-8')
