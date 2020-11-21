@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ A tool that generates and invokes `find` and `grep` commands. """
 ########################################################################
 # Description  : Please refer to the command line help (-h)
@@ -35,7 +35,7 @@ import platform
 import subprocess
 import shlex 
 __author__  = 'Norman MEINZER'
-__email__   = 'meinzer.norman@gmail.com'
+__email__   = 'real.norman.meinzer@gmail.com'
 __twitter__ = 'https://twitter.com/xor_man'
 __license__ = 'GPLv3'
 
@@ -48,7 +48,7 @@ class Search(object):
     def __init__(self):
         self.find_arg = ''
         self.grep_arg = '-exec grep --color=always '
-        self.grep_arg += '-H -n '   # Show file name (-H) and line number (-n)
+        self.grep_arg += '--with-filename --line-number '
         self.grep_file_size_threshold = '-size -2000k '
         self.name = os.path.basename(sys.argv[0])  
         if platform.system() == 'Windows':
@@ -104,7 +104,11 @@ def parse_arguments(self):
     )
     parser.add_argument('search_path', nargs='?', default='.',
                         help='Search path that is passed to the `find` application')
-    parser.add_argument('file_pattern', nargs='?', default='*', 
+    if platform.system() == 'Windows':
+        file_pattern_default = '\*'
+    else:
+        file_pattern_default = '*'
+    parser.add_argument('file_pattern', nargs='?', default=file_pattern_default, 
                         help='File pattern that is passed to `find`')
     parser.add_argument('-g', '--grep', help='File content search of pattern (passed to `grep`)', 
                         action='store')
@@ -232,19 +236,19 @@ def add_file_ext_filter(self, file_type_definitions, file_pattern):
         if file_type_definition['match'] == False:
             if not first_type:
                 self.find_arg += '-o '
-            self.find_arg += '-not -' + self.case_insensitive + 'name "' + \
-                             file_pattern + '.' + extensions[0] + '" '
+            self.find_arg += '-not -' + self.case_insensitive + 'name \'' + \
+                             file_pattern + '.' + extensions[0] + '\' '
             for ext in extensions[1:]:
-                self.find_arg += '-a -not -' + self.case_insensitive + 'name "' + \
-                                 file_pattern + '.' + ext + '" '
+                self.find_arg += '-a -not -' + self.case_insensitive + 'name \'' + \
+                                 file_pattern + '.' + ext + '\' '
         else:
             if not first_type:
                 self.find_arg += '-o '
-            self.find_arg += '-' + self.case_insensitive + 'name "' + \
-                             file_pattern + '.' + extensions[0] + '" '
+            self.find_arg += '-' + self.case_insensitive + 'name \'' + \
+                             file_pattern + '.' + extensions[0] + '\' '
             for ext in extensions[1:]:
-                self.find_arg += '-o -' + self.case_insensitive + 'name "' + \
-                              file_pattern + '.' + ext + '" '
+                self.find_arg += '-o -' + self.case_insensitive + 'name \'' + \
+                              file_pattern + '.' + ext + '\' '
         first_type = False
     self.find_arg += ' \) '
 
@@ -272,7 +276,7 @@ def add_time_filter(self):
 
 
 def parse_default_paths_from_file(self, id):
-    """ Read a list of paths from a configuration file. One path per 
+    """ Read a list of paths from a configuration file. One path per
     line. No new line after last path. Multiple files are supported.
     File is selected by an 'id'. If the file does not exist, the
     user is asked to create it interactively.
@@ -294,10 +298,10 @@ def parse_default_paths_from_file(self, id):
                 tmp_file = open(file_name, 'w')
                 print('Please enter one path, then press enter. Enter empty line to exit.')
                 new_path = get_user_input()
-                while new_path is not '':
+                while new_path != '':
                     tmp_file.write(new_path)
                     new_path = get_user_input() 
-                    if new_path is not '':
+                    if new_path != '':
                         tmp_file.write('\n')
             except:
                 print('Cannot open file for writing')
@@ -308,7 +312,7 @@ def invoke_command(self):
     The final assembly and invokation of the command happens here
     """ 
     for path in self.paths:
-        command='find "' + path + '" ' + self.find_arg 
+        command='find \'' + path + '\' ' + self.find_arg 
         
         if self.args.grep:
             command += ' -type f '
@@ -320,8 +324,8 @@ def invoke_command(self):
             
             command += self.grep_arg 
             if not self.args.case_sensitive:
-                command += '-i '
-            command += '"' + self.args.grep + '"' + ' {} ' + self.grep_terminator
+                command += '--ignore-case '
+            command += '\'' + self.args.grep + '\'' + ' {} ' + self.grep_terminator
         else:
             if self.args.more_context is not None:
                 print('Warning: Option -m,--more-context is only effective in '
@@ -341,8 +345,24 @@ def execute_and_print_stdout_while_running(command):
     output of the sub process while it is running. Returns 
     after the sub process exited.
     """
-    process = subprocess.Popen(shlex.split(command), shell=False, stdout=subprocess.PIPE, 
-                               stderr=subprocess.STDOUT) # ^-- prevent command injection
+    use_shell = platform.system() == 'Windows'
+    # ^-- Try not to use shell=True! Please refer to security warning at 
+    #     <https://docs.python.org/2/library/subprocess.html#popen-constructor>
+    #     However, command is passed to cmd.exe on Windows 10 with GitBash if shell=False.
+    
+    # In Windows 10 with GitBash, the command ...
+    # find "." \( -iname "*.sh" -o -iname "*.py" \)
+    #                                          ^-- subprocess.Popen won't accept double quotes
+    #                                              with parameter shell=True
+    # ... must be passed as ...
+    #command = [ 'find', '.', '\\(',  '-iname', '\\*.sh', '-o', '-iname', '\\*.py', '\\)' ]
+    # ... or ...
+    #command = [ 'find', '.', '\\(',  '-iname', '\'*.sh\'', '-o', '-iname', '\'*.py\'', '\\)' ]
+    #process = subprocess.Popen(command, shell=use_shell, stdout=subprocess.PIPE, 
+    #                           stderr=subprocess.STDOUT)
+    
+    process = subprocess.Popen(shlex.split(command), shell=use_shell, stdout=subprocess.PIPE, 
+                               stderr=subprocess.STDOUT)
     while True:
         try:
             line = process.stdout.readline().decode('utf-8')
@@ -412,12 +432,12 @@ def main():
             search.find_arg += '-size ' + file_type_defs[0]['size'] + ' '
         search.add_file_ext_filter(file_type_defs, search.args.file_pattern)
     else:
-        search.find_arg+='-' + search.case_insensitive + 'name "' + search.args.file_pattern + '" '
+        search.find_arg+='-' + search.case_insensitive + 'name \'' + search.args.file_pattern + '\' '
         #if search.args.regex:
         #    search.find_arg+='-regextype "posix-extended" -' + search.case_insensitive \
-        #                + 'regex "' + search.args.file_pattern + '" '
+        #                + 'regex \'' + search.args.file_pattern + '\' '
         #else:
-        #    search.find_arg+='-' + search.case_insensitive + 'name "' + search.args.file_pattern + '" '
+        #    search.find_arg+='-' + search.case_insensitive + 'name \'' + search.args.file_pattern + '\' '
 
     # Time --------------------------------
     if search.args.last_modified:
