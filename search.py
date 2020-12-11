@@ -46,7 +46,7 @@ class Search(object):
     finally processed by the applications `find` and `grep`.
     """
     def __init__(self):
-        self.find_arg = ''
+        self.find_arg = '-not -path \'*/.git/*\' '
         self.grep_arg = '-exec grep --color=always '
         self.grep_arg += '--with-filename --line-number '
         self.grep_file_size_threshold = '-size -2000k '
