@@ -33,7 +33,7 @@ import argparse
 import os
 import platform
 import subprocess
-import shlex 
+import shlex
 __author__  = 'Norman MEINZER'
 __email__   = 'real.norman.meinzer@gmail.com'
 __twitter__ = 'https://twitter.com/xor_man'
@@ -41,8 +41,8 @@ __license__ = 'GPLv3'
 
 
 class Search(object):
-    """ Core class of this search script. Implements methods that parse user input 
-    and methods that create comprehensive command line arguments which are 
+    """ Core class of this search script. Implements methods that parse user input
+    and methods that create comprehensive command line arguments which are
     finally processed by the applications `find` and `grep`.
     """
     def __init__(self):
@@ -50,7 +50,7 @@ class Search(object):
         self.grep_arg = '-exec grep --color=always '
         self.grep_arg += '--with-filename --line-number '
         self.grep_file_size_threshold = '-size -2000k '
-        self.name = os.path.basename(sys.argv[0])  
+        self.name = os.path.basename(sys.argv[0])
         if platform.system() == 'Windows':
             self.grep_terminator = ';'
             tmp = '~/' + os.path.splitext(self.name)[0]
@@ -67,11 +67,11 @@ class Search(object):
         #self.create_file_types()
     def parse_arguments(self):
         parse_arguments(self)
-    def create_file_types(self):    
+    def create_file_types(self):
         create_file_types(self)
     def find_file_type_def_or_exit(self):
         return find_file_type_def_or_exit(self)
-    def invoke_command(self):    
+    def invoke_command(self):
         invoke_command(self)
     def parse_default_paths_from_file(self, id):
         parse_default_paths_from_file(self, id)
@@ -92,7 +92,7 @@ def parse_arguments(self):
                       'script generates (arg -s) and invokes a tailored `find` and `grep` command '
                       'with a selection of switches enabled by default. Some switches should '
                       'increase the search speed but might also exclude relevant search results. For '
-                      'instance, argument -g only searches patterns in files with ' + 
+                      'instance, argument -g only searches patterns in files with ' +
                       self.grep_file_size_threshold,
         epilog = 'Examples: ' + self.name + " . '*.txt' --grep pattern "
                 + '________________________________ '
@@ -108,12 +108,12 @@ def parse_arguments(self):
         file_pattern_default = '\*'
     else:
         file_pattern_default = '*'
-    parser.add_argument('file_pattern', nargs='?', default=file_pattern_default, 
+    parser.add_argument('file_pattern', nargs='?', default=file_pattern_default,
                         help='File pattern that is passed to `find`')
-    parser.add_argument('-g', '--grep', help='File content search of pattern (passed to `grep`)', 
+    parser.add_argument('-g', '--grep', help='File content search of pattern (passed to `grep`)',
                         action='store')
     parser.add_argument('-d', '--default-path-file', help='Reads a list of search paths from a config '
-                        'file named DEFAULT_PATH_FILE and stored in ' + self.paths_config_path + 
+                        'file named DEFAULT_PATH_FILE and stored in ' + self.paths_config_path +
                         '. Then, runs the generated command for each path. '
                         'Asks for interactive creation of the config file if it doesn\'t exist. '
                         'If the positional arg file_pattern is used, the arg search_path remains '
@@ -135,15 +135,15 @@ def parse_arguments(self):
     parser.add_argument('-c', '--case-sensitive', help='Case sensitive search for `find` (and `grep`)',
                         action='store_true')
     self.args = parser.parse_args()
-    
+
     self.args.search_path = self.args.search_path.replace('"', '\\"')
     self.args.file_pattern = self.args.file_pattern.replace('"', '\\"')
     if self.args.grep:
         self.args.grep = self.args.grep.replace('"', '\\"')
 
 
-def create_file_types(self):    
-    """ This is an embedded configuration of file_types. 
+def create_file_types(self):
+    """ This is an embedded configuration of file_types.
     A file_type consists of 'size', the 'match'-flag, and 'extensions'.
     - size : Optional criteria to reduce the number of file findings
              through the file size.
@@ -153,42 +153,42 @@ def create_file_types(self):
     - extensions: Mandatory list of file extensions to search for.
     """
     # TODO too many matches with 'import mimetypes'?
-    self.file_types = { 
+    self.file_types = {
         'text' :
-            { 'size' : '', 'match' : True, 'extensions' : 
+            { 'size' : '', 'match' : True, 'extensions' :
                 ('txt', 'md', 'markdown', 'csv', 'url') },
         'markup-text' :
-            { 'size' : '', 'match' : True, 'extensions' : 
+            { 'size' : '', 'match' : True, 'extensions' :
                 ('tex', 'htm', 'html', 'rtf') },
         'code' :
-            { 'size' : '', 'match' : True, 'extensions' : 
+            { 'size' : '', 'match' : True, 'extensions' :
                 ('c', 'cpp', 'cc', 'h', 'hpp', 'java', 'swift', 'php', 'rb', 'el', 'lsp', 'm', 'cp') },
         'configuration' :
-            { 'size' : '', 'match' : True, 'extensions' : 
+            { 'size' : '', 'match' : True, 'extensions' :
                 ('cfg', 'reg', 'yaml', 'ini', 'xml', 'json') },
         'script' :
-            { 'size' : '', 'match' : True, 'extensions' : 
+            { 'size' : '', 'match' : True, 'extensions' :
                 ('sh', 'py', 'pl', 'mk', 'mak', 'cmake', 'bat', 'ps1', 'vb', 'vbs', 'ws', 'scpt', 'command', 'tcl', 'vim', 'r', 'lua') },
         #'' :
             #{ 'size' : '', 'match' : True, 'extensions' : ( '', '' ) },
         'image' :
-            { 'size' : '+4k',  'match' : True, 'extensions' : 
+            { 'size' : '+4k',  'match' : True, 'extensions' :
                 ('png', 'jpg', 'bmp', 'gif', 'jpeg', 'svg', 'tif', 'tiff') },
         'audio' :
-            { 'size' : '+10k', 'match' : True, 'extensions' : 
-                ('mp3', 'wma', 'ogg', 'wav', 'midi', 'aif') }, 
+            { 'size' : '+10k', 'match' : True, 'extensions' :
+                ('mp3', 'wma', 'ogg', 'wav', 'midi', 'aif') },
         'video' :
-            { 'size' : '+500k','match' : True, 'extensions' : 
-                ('avi', 'mkv', 'mpg', 'mpeg', 'h264', 'mov', 'mp4', 'vob', 'flv', '3gp', 'wmv') }, 
+            { 'size' : '+500k','match' : True, 'extensions' :
+                ('avi', 'mkv', 'mpg', 'mpeg', 'h264', 'mov', 'mp4', 'vob', 'flv', '3gp', 'wmv') },
         'certificate' :
-            { 'size' : '',   'match' : True, 'extensions' : 
-                ('cer', 'crt', 'der', 'pem', 'crl') }, 
+            { 'size' : '',   'match' : True, 'extensions' :
+                ('cer', 'crt', 'der', 'pem', 'crl') },
         # TODO use zipfile.is_zipfile() and tarfile.is_tarfile() instead?
         'archive' :
-            { 'size' : '',   'match' : True, 'extensions' : 
-                ('7z', 'zip', 'gz', 'tgz', 'z', 'rar', 'rpm', 'pkg', 'deb') } 
+            { 'size' : '',   'match' : True, 'extensions' :
+                ('7z', 'zip', 'gz', 'tgz', 'z', 'rar', 'rpm', 'pkg', 'deb') }
     }
-    
+
     # Auto generate 'not-' / match=False entries
     not_file_types = dict()
     self.file_type_choices = list()
@@ -204,7 +204,7 @@ def create_file_types(self):
 
 def find_file_type_def_or_exit(self):
     """ Parses the -f command line argument operand and tries to
-    find the internal definition of the requested type. Prints a 
+    find the internal definition of the requested type. Prints a
     list of available types if the requested type was not found
     and exits.
     """
@@ -226,7 +226,7 @@ def find_file_type_def_or_exit(self):
 
 
 def add_file_ext_filter(self, file_type_definitions, file_pattern):
-    """ Reduce the number of file findings by searching for a specific 
+    """ Reduce the number of file findings by searching for a specific
     'file_pattern' (wildcards supported) and 'file_type_definitions'.
     """
     self.find_arg += '\( '
@@ -254,8 +254,8 @@ def add_file_ext_filter(self, file_type_definitions, file_pattern):
 
 
 def add_time_filter(self):
-    """ Reduce the number of file findings by searching for files that 
-    were last modified N hours ago or afterwards. N is derived from an 
+    """ Reduce the number of file findings by searching for files that
+    were last modified N hours ago or afterwards. N is derived from an
     argument that is stored in a member of the class.
     """
     lm_dict = {
@@ -282,11 +282,11 @@ def parse_default_paths_from_file(self, id):
     user is asked to create it interactively.
     """
     self.paths = list()
-    file_name = os.path.expanduser(self.paths_config_path) + id + '.txt' 
+    file_name = os.path.expanduser(self.paths_config_path) + id + '.txt'
     try:
         tmp_file = open(file_name)
         for path in tmp_file:
-            path_to_add = path.rstrip().replace('"', '\\"') 
+            path_to_add = path.rstrip().replace('"', '\\"')
             path_to_add = os.path.expanduser( path_to_add )
             self.paths += [ path_to_add ]
     except:
@@ -300,29 +300,29 @@ def parse_default_paths_from_file(self, id):
                 new_path = get_user_input()
                 while new_path != '':
                     tmp_file.write(new_path)
-                    new_path = get_user_input() 
+                    new_path = get_user_input()
                     if new_path != '':
                         tmp_file.write('\n')
             except:
                 print('Cannot open file for writing')
-    
+
 
 def invoke_command(self):
     """
     The final assembly and invokation of the command happens here
-    """ 
+    """
     for path in self.paths:
-        command='find \'' + path + '\' ' + self.find_arg 
-        
+        command='find \'' + path + '\' ' + self.find_arg
+
         if self.args.grep:
             command += ' -type f '
             if not '-size' in command:
-                # If `grep` is used, ensure that a file '-size' limit is set. This 
-                # prevents that time is wasted for a pattern search in big files 
+                # If `grep` is used, ensure that a file '-size' limit is set. This
+                # prevents that time is wasted for a pattern search in big files
                 # that are often compressed or encrypted archives.
                 command += self.grep_file_size_threshold
-            
-            command += self.grep_arg 
+
+            command += self.grep_arg
             if not self.args.case_sensitive:
                 command += '--ignore-case '
             command += '\'' + self.args.grep + '\'' + ' {} ' + self.grep_terminator
@@ -341,15 +341,15 @@ def invoke_command(self):
 
 
 def execute_and_print_stdout_while_running(command):
-    """ Executes a shell 'command' and prints the standard 
-    output of the sub process while it is running. Returns 
+    """ Executes a shell 'command' and prints the standard
+    output of the sub process while it is running. Returns
     after the sub process exited.
     """
     use_shell = platform.system() == 'Windows'
-    # ^-- Try not to use shell=True! Please refer to security warning at 
+    # ^-- Try not to use shell=True! Please refer to security warning at
     #     <https://docs.python.org/2/library/subprocess.html#popen-constructor>
     #     However, command is passed to cmd.exe on Windows 10 with GitBash if shell=False.
-    
+
     # In Windows 10 with GitBash, the command ...
     # find "." \( -iname "*.sh" -o -iname "*.py" \)
     #                                          ^-- subprocess.Popen won't accept double quotes
@@ -358,10 +358,10 @@ def execute_and_print_stdout_while_running(command):
     #command = [ 'find', '.', '\\(',  '-iname', '\\*.sh', '-o', '-iname', '\\*.py', '\\)' ]
     # ... or ...
     #command = [ 'find', '.', '\\(',  '-iname', '\'*.sh\'', '-o', '-iname', '\'*.py\'', '\\)' ]
-    #process = subprocess.Popen(command, shell=use_shell, stdout=subprocess.PIPE, 
+    #process = subprocess.Popen(command, shell=use_shell, stdout=subprocess.PIPE,
     #                           stderr=subprocess.STDOUT)
-    
-    process = subprocess.Popen(shlex.split(command), shell=use_shell, stdout=subprocess.PIPE, 
+
+    process = subprocess.Popen(shlex.split(command), shell=use_shell, stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT)
     while True:
         try:
@@ -378,14 +378,14 @@ def get_user_input():
     """ python2 and 3 compatible function that gets raw user input
     """
     try: return raw_input()
-    except NameError: 
+    except NameError:
         pass
     return input()
 
- 
+
 def dialog_yes_no(question, default_answer=None):
     """ Yes/No user dialog that asks the 'question' and returns
-    True for yes and False for no. If a 'default_answer' is 
+    True for yes and False for no. If a 'default_answer' is
     passed to this function, the user can just hit enter to
     continue with this answer. The default answer is indicated
     through capitalization in the prompt.
@@ -416,18 +416,18 @@ def dialog_yes_no(question, default_answer=None):
 def main():
     search = Search()
     search.parse_arguments()
- 
+
     if not search.args.case_sensitive:
         search.case_insensitive = 'i'
     else:
-        search.case_insensitive = '' 
+        search.case_insensitive = ''
 
     # Options for `find` =============================
     # File types / names ------------------
-    if search.args.file_type: 
+    if search.args.file_type:
         search.create_file_types()
-        
-        file_type_defs = search.find_file_type_def_or_exit() 
+
+        file_type_defs = search.find_file_type_def_or_exit()
         if len(file_type_defs) == 1 and file_type_defs[0]['size']:
             search.find_arg += '-size ' + file_type_defs[0]['size'] + ' '
         search.add_file_ext_filter(file_type_defs, search.args.file_pattern)
@@ -441,7 +441,7 @@ def main():
 
     # Time --------------------------------
     if search.args.last_modified:
-       search.add_time_filter() 
+       search.add_time_filter()
 
     # Options for `grep` =============================
     if search.args.more_context is not None:
@@ -450,13 +450,13 @@ def main():
 
     # Search path(s) =================================
     if search.args.default_path_file is not None:
-        search.parse_default_paths_from_file( search.args.default_path_file ) 
+        search.parse_default_paths_from_file( search.args.default_path_file )
     else:
         search.paths = [ search.args.search_path ]
 
     # Let's do it ====================================
     search.invoke_command()
-         
+
 
 if __name__ == '__main__':
     main()
