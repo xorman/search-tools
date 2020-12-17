@@ -29,11 +29,12 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 ########################################################################
 import sys
-import argparse
 import os
 import platform
 import subprocess
 import shlex
+from textwrap import dedent
+from argparse import ArgumentParser, RawDescriptionHelpFormatter, RawTextHelpFormatter
 __author__  = 'Norman MEINZER'
 __email__   = 'real.norman.meinzer@gmail.com'
 __twitter__ = 'https://twitter.com/xor_man'
@@ -86,54 +87,75 @@ def parse_arguments(self):
     some arguments, specify choices for arguments that have predictable
     input.
     """
-    parser = argparse.ArgumentParser(
-        description = 'Offline search tool for files and file content of files that are not indexed. '
-                      'The goal of this tool is to keep the search command as short as possible. The '
-                      'script generates (arg -s) and invokes a tailored `find` and `grep` command '
-                      'with a selection of switches enabled by default. Some switches should '
-                      'increase the search speed but might also exclude relevant search results. For '
-                      'instance, argument -g only searches patterns in files with ' +
-                      self.grep_file_size_threshold,
-        epilog = 'Examples: ' + self.name + " . '*.txt' --grep pattern "
-                + '________________________________ '
-                + self.name + " -s > s.sh; chmod +x s.sh; ./s.sh"
-                + ' __________________________________ '
-                + self.name + " -f text,sc"
-                #+ ' ___________________________________________________________ '
-                #+ self.name + " -r '.*a.*l\.(png|jpg|bmp|ico)'"
-    )
-    parser.add_argument('search_path', nargs='?', default='.',
-                        help='Search path that is passed to the `find` application')
+    parser = ArgumentParser(
+        # formatter_class=RawDescriptionHelpFormatter,
+        formatter_class=RawTextHelpFormatter,
+        description=dedent("""
+            Offline search tool for files and file content of files that are not indexed.
+            The goal of this tool is to keep the search command as short as possible. The
+            script generates (arg -s) and invokes a tailored `find` and `grep` command
+            with a selection of switches enabled by default. Some switches should
+            increase the search speed but might also exclude relevant search results. For
+            instance, argument -g only searches patterns in files with {}.""".format(
+            self.grep_file_size_threshold)),
+        epilog=dedent("""
+            Examples:
+                {0} . '*.txt' --grep pattern
+                {0} . -s > s.sh; chmod +x s.sh; ./s.sh
+                {0} . -f text,sc""".format(self.name)))
+    parser.add_argument(
+        'search_path', nargs='?', default='.',
+        help='Search path that is passed to the `find` application')
     if platform.system() == 'Windows':
         file_pattern_default = '\*'
     else:
         file_pattern_default = '*'
-    parser.add_argument('file_pattern', nargs='?', default=file_pattern_default,
-                        help='File pattern that is passed to `find`')
-    parser.add_argument('-g', '--grep', help='File content search of pattern (passed to `grep`)',
-                        action='store')
-    parser.add_argument('-d', '--default-path-file', help='Reads a list of search paths from a config '
-                        'file named DEFAULT_PATH_FILE and stored in ' + self.paths_config_path +
-                        '. Then, runs the generated command for each path. '
-                        'Asks for interactive creation of the config file if it doesn\'t exist. '
-                        'If the positional arg file_pattern is used, the arg search_path remains '
-                        'mandatory but will be overwritten by the list created through -d arg. '
-                        'E.g. ' + self.name + ' . \'*.xyz\' -s -d'
-                        , action='store', nargs='?', const='default-list')
-    parser.add_argument('-f', '--file-type', help='Select a search file type (= file extensions + size). ' +
-                        'Supports comma separated list. Prints list of available types if FILE_TYPE is unknown.') #,
-                        #action='store', choices=self.file_type_choices)
-    parser.add_argument('-s', '--show-command', help="Show generated command. Don't invoke it.",
-                        action='store_true')
-    parser.add_argument('-v', '--verbose', help='Print separator and generated command, then invoke it',
-                        action='store_true')
-    parser.add_argument('-m', '--more-context', help='Print context lines before and after `grep` match',
-                        action='store', nargs='?', const='4')
-    parser.add_argument('-l', '--last-modified', help= 'Last modified within the past [ Year, Quarter, ' +
-                        'Month, Week, Day(24h), Today(12h) ]',
-                        action='store', choices=['y', 'q', 'm', 'w', 'd', 't'])
-    parser.add_argument('-c', '--case-sensitive', help='Case sensitive search for `find` (and `grep`)',
-                        action='store_true')
+    parser.add_argument(
+        'file_pattern', nargs='?', default=file_pattern_default,
+        help='File pattern that is passed to `find`')
+    parser.add_argument(
+        '-g', '--grep', action='store',
+        help='File content search of pattern (passed to `grep`)')
+    parser.add_argument(
+        '-d', '--default-path-file', action='store', nargs='?',
+        const='default-list',
+        help=dedent("""
+            Reads a list of search paths from a config file
+            named DEFAULT_PATH_FILE and stored in
+            {0}.
+            Then, runs the generated command for each path.
+            Asks for interactive creation of the config file if
+            it doesn't exist. If the positional arg file_pattern
+            is used, the arg search_path remains mandatory but
+            will be overwritten by the list created through -d
+            arg. E.g. {1} . '*.xyz' -s -d""".format(
+            self.paths_config_path, self.name)[1:]))
+    parser.add_argument(
+        '-f', '--file-type',
+        # action='store', choices=self.file_type_choices,
+        help=dedent('''
+            Select a search file type (= file extensions + size).
+            Supports comma separated list. Prints list of available
+            types if FILE_TYPE is unknown.'''[1:]))
+    parser.add_argument(
+        '-s', '--show-command', action='store_true',
+        help="Show generated command. Don't invoke it.")
+    parser.add_argument(
+        '-v', '--verbose', action='store_true',
+        help='Print separator and generated command, then invoke it')
+    parser.add_argument(
+        '-m', '--more-context', action='store', nargs='?', const='4',
+        help='Print context lines before and after `grep` match')
+    parser.add_argument(
+        '-l', '--last-modified',
+        action='store', choices=['y', 'q', 'm', 'w', 'd', 't'],
+        help=dedent('''
+            Last modified within the past [ Year, Quarter,
+            Month, Week, Day(24h), Today(12h) ]''')[1:])
+    parser.add_argument(
+        '-c', '--case-sensitive',
+        action='store_true',
+        help='Case sensitive search for `find` (and `grep`)')
     self.args = parser.parse_args()
 
     self.args.search_path = self.args.search_path.replace('"', '\\"')
