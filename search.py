@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 """ A tool that generates and invokes `find` and `grep` commands. """
 ########################################################################
-# Description  : Please refer to the command line help (-h)
-# Prerequisites: `find`, `grep`, and `python2 or 3` must be installed on
+# Prerequisites: `find`, `grep`, and `python3` must be installed on
 # the system. This script was tested on a vanilla Linux and macOS.
 # On Windows it was tested with GitBash and Python installed.
-# <https://git-for-windows.github.io/> contains GitBash
-# <https://www.python.org/downloads/>
-# To run this script in the GitBash with ./, please create the following
-# file in %HOMEPATH%.       File_name: .bash_profile            Content:
-# PATH=$PATH:/c/Users/$(whoami)/AppData/Local/Programs/Python/Python36/
-# PATH=$PATH:/c/Users/$(whoami)/AppData/Local/Programs/Python/Python36-32/
+# [This contains GitBash](https://git-for-windows.github.io/)
+# To run this script in the GitBash, please create or extend
+# ~/.bash_profile with:
+# PATH="$PATH:/c/Users/$(whoami)/AppData/Local/Programs/Python/Python39/"
+# # or this if 32 bit Python interpreter was installed
+# PATH="$PATH:/c/Users/$(whoami)/AppData/Local/Programs/Python/Python39-32/"
 # export PATH
+# Furthermore, it might be necessary to change `python3` to `python` in
+# the shebang line.
 ########################################################################
-# Copyright 2017 Norman MEINZER
+# Copyright 2020 Norman MEINZER
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -106,10 +107,12 @@ def parse_arguments(self):
     parser.add_argument(
         'search_path', nargs='?', default='.',
         help='Search path that is passed to the `find` application')
-    if platform.system() == 'Windows':
-        file_pattern_default = '\*'
-    else:
-        file_pattern_default = '*'
+    # This was necessary for a GitBash-constellation that I don't recall.
+    # if platform.system() == 'Windows':
+    #     file_pattern_default = '\*'
+    # else:
+    #     file_pattern_default = '*'
+    file_pattern_default = '*'
     parser.add_argument(
         'file_pattern', nargs='?', default=file_pattern_default,
         help='File pattern that is passed to `find`')
@@ -364,27 +367,37 @@ def invoke_command(self):
 
 def execute_and_print_stdout_while_running(command):
     """ Executes a shell 'command' and prints the standard
-    output of the sub process while it is running. Returns
-    after the sub process exited.
+    output of the subprocess while it is running. Returns
+    after the subprocess exited.
     """
-    use_shell = platform.system() == 'Windows'
-    # ^-- Try not to use shell=True! Please refer to security warning at
-    #     <https://docs.python.org/2/library/subprocess.html#popen-constructor>
-    #     However, command is passed to cmd.exe on Windows 10 with GitBash if shell=False.
-
-    # In Windows 10 with GitBash, the command ...
-    # find "." \( -iname "*.sh" -o -iname "*.py" \)
-    #                                          ^-- subprocess.Popen won't accept double quotes
-    #                                              with parameter shell=True
-    # ... must be passed as ...
-    #command = [ 'find', '.', '\\(',  '-iname', '\\*.sh', '-o', '-iname', '\\*.py', '\\)' ]
-    # ... or ...
-    #command = [ 'find', '.', '\\(',  '-iname', '\'*.sh\'', '-o', '-iname', '\'*.py\'', '\\)' ]
-    #process = subprocess.Popen(command, shell=use_shell, stdout=subprocess.PIPE,
-    #                           stderr=subprocess.STDOUT)
-
-    process = subprocess.Popen(shlex.split(command), shell=use_shell, stdout=subprocess.PIPE,
-                               stderr=subprocess.STDOUT)
+    # Popen() observations
+    # ====================
+    # `subprocess.Popen(command=, shell=, ...)`
+    # Try not to use `shell=True`! Please refer to security warning at
+    # <https://docs.python.org/2/library/subprocess.html#popen-constructor>
+    #
+    # Popen() in GitBash on Windows 10
+    # --------------------------------
+    # - `shell=False`
+    #     - Parameter `command` is passed to `cmd.exe`
+    # - `shell=True`
+    #     - Parameter `command` is passed to `bash`
+    #     - `command` is of type string
+    # - Example: `find "." \( -iname "*.sh" -o -iname "*.py" \)`
+    #     - Here, `Popen()` doesn't accept double quotes with parameter `shell=True`.
+    #       Therefore, 'Quote\'' is used instead of "Quote'" in this script.
+    # Popen() on Linux
+    # ----------------
+    # `command` is of type list. TODO: I think these worked:
+    # `cmd = [ 'find', '.', '\\(',  '-iname', '\\*.sh', '-o', '-iname', '\\*.py', '\\)' ]`
+    # or ...
+    # `cmd = [ 'find', '.', '\\(',  '-iname', '\'*.sh\'', '-o', '-iname', '\'*.py\'', '\\)' ]`
+    if platform.system() == 'Windows':
+        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
+                                   stderr=subprocess.STDOUT)
+    else:
+        process = subprocess.Popen(shlex.split(command), shell=False, stdout=subprocess.PIPE,
+                                   stderr=subprocess.STDOUT)
     while True:
         try:
             line = process.stdout.readline().decode('utf-8')
