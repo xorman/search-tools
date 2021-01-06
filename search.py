@@ -54,21 +54,22 @@ def main():
     search = Search()
     search.parse_arguments()
 
-    if not search.args.case_sensitive:
-        search.case_insensitive = 'i'
-    else:
-        search.case_insensitive = ''
-
     # Options for find =============================
     # File types / names ------------------
     if search.args.file_type:
-        search.create_file_types()
+        # Search for one or more categories of file types.
+        # Categories can be text, image, audio OR not-text.
+        search.create_file_type_categories()
 
-        file_type_defs = search.find_file_type_def_or_exit()
-        if len(file_type_defs) == 1 and file_type_defs[0]['size']:
-            search.find_arg += '-size ' + file_type_defs[0]['size'] + ' '
-        search.add_file_ext_filter(file_type_defs, search.args.file_pattern)
+        file_type_cats = search.find_file_type_cat_or_exit()
+        if len(file_type_cats) == 1 and file_type_cats[0]['size'] != '':
+            # `find` only takes one -size argument. Therefore,
+            # it is only passed if the user searches one of our
+            # file type categories.
+            search.find_arg += '-size ' + file_type_cats[0]['size'] + ' '
+        search.add_file_ext_filter(file_type_cats, search.args.file_pattern)
     else:
+        # Search for one file pattern (e.g. *.py)
         search.find_arg+='-' + search.case_insensitive + 'name \'' + search.args.file_pattern + '\' '
         #if search.args.regex:
         #    search.find_arg+='-regextype "posix-extended" -' + search.case_insensitive \
@@ -119,19 +120,18 @@ class Search(object):
         else:
             self.grep_terminator = '\;'
             self.paths_config_path = '~/.' + os.path.splitext(self.name)[0] + '/default-paths/'
-        #self.create_file_types()
     def parse_arguments(self):
         parse_arguments(self)
-    def create_file_types(self):
-        create_file_types(self)
-    def find_file_type_def_or_exit(self):
-        return find_file_type_def_or_exit(self)
+    def create_file_type_categories(self):
+        create_file_type_categories(self)
+    def find_file_type_cat_or_exit(self):
+        return find_file_type_cat_or_exit(self)
     def invoke_command(self):
         invoke_command(self)
     def parse_default_paths_from_file(self, id):
         parse_default_paths_from_file(self, id)
-    def add_file_ext_filter(self, file_type_definition, file_pattern):
-        add_file_ext_filter(self, file_type_definition, file_pattern)
+    def add_file_ext_filter(self, file_type_category, file_pattern):
+        add_file_ext_filter(self, file_type_category, file_pattern)
     def add_time_filter(self):
         add_time_filter(self)
 
@@ -190,9 +190,11 @@ def parse_arguments(self):
         '-f', '--file-type',
         # action='store', choices=self.file_type_choices,
         help=dedent('''
-            Select a search file type (= file extensions + size).
-            Supports comma separated list. Prints list of available
-            types if FILE_TYPE is unknown.'''[1:]))
+            Search for a category of file types. A category is a
+            collection of file extensions plus an optional file size.
+            Supports comma separated list like 'text,audio'. Prints
+            a list of available type categories if FILE_TYPE is
+            unknown.'''[1:]))
     parser.add_argument(
         '-s', '--show-command', action='store_true',
         help="Show generated command. Don't invoke it.")
@@ -219,19 +221,25 @@ def parse_arguments(self):
     if self.args.grep:
         self.args.grep = self.args.grep.replace('"', '\\"')
 
+    if not self.args.case_sensitive:
+        self.case_insensitive = 'i'
+    else:
+        self.case_insensitive = ''
 
-def create_file_types(self):
-    """ This is an embedded configuration of file_types.
-    A file_type consists of 'size', the 'match'-flag, and 'extensions'.
+
+def create_file_type_categories(self):
+    """ This is an embedded configuration of file_type categories.
+
+    A file_type category consists of size, the match-flag, and extensions.
     - size : Optional criteria to reduce the number of file findings
              through the file size.
-    - match: 'True'  --> Find files that match the 'extensions'
-             'False' --> Find files that don't match the 'extensions'.
-                         These entries are automatically generated.
+    - match: True  --> Find files that match the extensions
+             False --> Find files that don't match the extensions.
+                       These entries are automatically generated.
     - extensions: Mandatory list of file extensions to search for.
     """
     # TODO too many matches with 'import mimetypes'?
-    self.file_types = {
+    self.file_type_categories = {
         'text' :
             { 'size' : '', 'match' : True, 'extensions' :
                 ('txt', 'md', 'markdown', 'csv', 'url') },
@@ -268,50 +276,50 @@ def create_file_types(self):
     }
 
     # Auto generate 'not-' / match=False entries
-    not_file_types = dict()
+    not_file_type_categories = dict()
     self.file_type_choices = list()
-    for file_type_key, file_type_def in self.file_types.items():
+    for file_type_key, file_type_cat in self.file_type_categories.items():
         self.file_type_choices += [ file_type_key ]
         if not file_type_key.startswith('not-'):
             file_type_not_key = str('not-') + file_type_key
             self.file_type_choices += [ file_type_not_key ]
-            not_file_types[ file_type_not_key ] = dict(file_type_def)
-            not_file_types[ file_type_not_key ]['match'] = False
-    self.file_types.update(not_file_types)
+            not_file_type_categories[ file_type_not_key ] = dict(file_type_cat)
+            not_file_type_categories[ file_type_not_key ]['match'] = False
+    self.file_type_categories.update(not_file_type_categories)
 
 
-def find_file_type_def_or_exit(self):
+def find_file_type_cat_or_exit(self):
     """ Parses the -f command line argument operand and tries to
     find the internal definition of the requested type. Prints a
     list of available types if the requested type was not found
     and exits.
     """
-    file_type_defs = []
+    file_type_cats = []
     for file_type in self.args.file_type.split(','):
-        file_type_def = False
-        for file_type_key in self.file_types:
+        file_type_cat = False
+        for file_type_key in self.file_type_categories:
             if file_type_key.startswith(file_type):
-                file_type_def = self.file_types[ file_type_key ]
+                file_type_cat = self.file_type_categories[ file_type_key ]
                 break
 
-        if file_type_def:
-            file_type_defs.append(file_type_def)
+        if file_type_cat:
+            file_type_cats.append(file_type_cat)
         else:
             sys.stdout.write("Error: Unknown file-type '" + self.args.file_type + "'; choices: ")
             print(self.file_type_choices)
             exit(1)
-    return file_type_defs
+    return file_type_cats
 
 
-def add_file_ext_filter(self, file_type_definitions, file_pattern):
+def add_file_ext_filter(self, file_type_categories, file_pattern):
     """ Reduce the number of file findings by searching for a specific
-    'file_pattern' (wildcards supported) and 'file_type_definitions'.
+    'file_pattern' (wildcards supported) and 'file_type_categories'.
     """
     self.find_arg += '\( '
     first_type = True
-    for file_type_definition in file_type_definitions:
-        extensions = file_type_definition['extensions']
-        if file_type_definition['match'] == False:
+    for file_type_category in file_type_categories:
+        extensions = file_type_category['extensions']
+        if file_type_category['match'] == False:
             if not first_type:
                 self.find_arg += '-o '
             self.find_arg += '-not -' + self.case_insensitive + 'name \'' + \
