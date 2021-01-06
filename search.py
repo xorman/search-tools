@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-""" A tool that generates and invokes `find` and `grep` commands. """
+""" A tool that generates and invokes find and grep commands. """
 ########################################################################
-# Prerequisites: `find`, `grep`, and `python3` must be installed on
+# Prerequisites: find, grep, and python3 must be installed on
 # the system. This script was tested on a vanilla Linux and macOS.
-# On Windows it was tested with GitBash and Python installed.
+# On Windows it was tested with GitBash and Python3 installed.
 # [This contains GitBash](https://git-for-windows.github.io/)
-# To run this script in the GitBash, please create or extend
+# To run this script in GitBash, please create or extend
 # ~/.bash_profile with:
 # PATH="$PATH:/c/Users/$(whoami)/AppData/Local/Programs/Python/Python39/"
-# # or this if 32 bit Python interpreter was installed
+# # or this if 32 bit Python interpreter is installed
 # PATH="$PATH:/c/Users/$(whoami)/AppData/Local/Programs/Python/Python39-32/"
 # export PATH
-# Furthermore, it might be necessary to change `python3` to `python` in
+# Furthermore, it might be necessary to change python3 to python in
 # the shebang line.
 ########################################################################
 # Copyright 2020 Norman MEINZER
@@ -42,10 +42,18 @@ __twitter__ = 'https://twitter.com/xor_man'
 __license__ = 'GPLv3'
 
 
+if sys.version_info.major == 2:
+    # Python2's input() is vulnerable to code injection by design.
+    # It accepts Python commands and executes them. Python2's raw_input()
+    # is not vulnerable. Therefore, always use raw_input() in Python2.
+    # Python2's raw_input() does what input() does in Python3.
+    input = raw_input
+
+
 class Search(object):
     """ Core class of this search script. Implements methods that parse user input
     and methods that create comprehensive command line arguments which are
-    finally processed by the applications `find` and `grep`.
+    finally processed by the applications find and grep.
     """
     def __init__(self):
         self.find_arg = '-not -path \'*/.git/*\' '
@@ -94,7 +102,7 @@ def parse_arguments(self):
         description=dedent("""
             Offline search tool for files and file content of files that are not indexed.
             The goal of this tool is to keep the search command as short as possible. The
-            script generates (arg -s) and invokes a tailored `find` and `grep` command
+            script generates (arg -s) and invokes a tailored find and grep command
             with a selection of switches enabled by default. Some switches should
             increase the search speed but might also exclude relevant search results. For
             instance, argument -g only searches patterns in files with {}.""".format(
@@ -106,7 +114,7 @@ def parse_arguments(self):
                 {0} . -f text,sc""".format(self.name)))
     parser.add_argument(
         'search_path', nargs='?', default='.',
-        help='Search path that is passed to the `find` application')
+        help='Search path that is passed to the find application')
     # This was necessary for a GitBash-constellation that I don't recall.
     # if platform.system() == 'Windows':
     #     file_pattern_default = '\*'
@@ -322,10 +330,10 @@ def parse_default_paths_from_file(self, id):
                     os.makedirs( os.path.dirname(file_name) )
                 tmp_file = open(file_name, 'w')
                 print('Please enter one path, then press enter. Enter empty line to exit.')
-                new_path = get_user_input()
+                new_path = input()
                 while new_path != '':
                     tmp_file.write(new_path)
-                    new_path = get_user_input()
+                    new_path = input()
                     if new_path != '':
                         tmp_file.write('\n')
             except:
@@ -342,7 +350,7 @@ def invoke_command(self):
         if self.args.grep:
             command += ' -type f '
             if not '-size' in command:
-                # If `grep` is used, ensure that a file '-size' limit is set. This
+                # If grep is used, ensure that a file '-size' limit is set. This
                 # prevents that time is wasted for a pattern search in big files
                 # that are often compressed or encrypted archives.
                 command += self.grep_file_size_threshold
@@ -372,26 +380,26 @@ def execute_and_print_stdout_while_running(command):
     """
     # Popen() observations
     # ====================
-    # `subprocess.Popen(command=, shell=, ...)`
-    # Try not to use `shell=True`! Please refer to security warning at
+    # subprocess.Popen(command=, shell=, ...)
+    # Try not to use shell=True! Please refer to security warning at
     # <https://docs.python.org/2/library/subprocess.html#popen-constructor>
     #
     # Popen() in GitBash on Windows 10
     # --------------------------------
-    # - `shell=False`
-    #     - Parameter `command` is passed to `cmd.exe`
-    # - `shell=True`
-    #     - Parameter `command` is passed to `bash`
-    #     - `command` is of type string
-    # - Example: `find "." \( -iname "*.sh" -o -iname "*.py" \)`
-    #     - Here, `Popen()` doesn't accept double quotes with parameter `shell=True`.
+    # - shell=False
+    #     - Parameter command is passed to cmd.exe
+    # - shell=True
+    #     - Parameter command is passed to bash
+    #     - command is of type string
+    # - Example: find "." \( -iname "*.sh" -o -iname "*.py" \)
+    #     - Here, Popen() doesn't accept double quotes with parameter shell=True.
     #       Therefore, 'Quote\'' is used instead of "Quote'" in this script.
     # Popen() on Linux
     # ----------------
-    # `command` is of type list. TODO: I think these worked:
-    # `cmd = [ 'find', '.', '\\(',  '-iname', '\\*.sh', '-o', '-iname', '\\*.py', '\\)' ]`
+    # command is of type list. TODO: I think these worked:
+    # cmd = [ 'find', '.', '\\(',  '-iname', '\\*.sh', '-o', '-iname', '\\*.py', '\\)' ]
     # or ...
-    # `cmd = [ 'find', '.', '\\(',  '-iname', '\'*.sh\'', '-o', '-iname', '\'*.py\'', '\\)' ]`
+    # cmd = [ 'find', '.', '\\(',  '-iname', '\'*.sh\'', '-o', '-iname', '\'*.py\'', '\\)' ]
     if platform.system() == 'Windows':
         process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
                                    stderr=subprocess.STDOUT)
@@ -407,15 +415,6 @@ def execute_and_print_stdout_while_running(command):
             sys.stdout.flush()
         except:
             sys.stderr.write('Cannot process line properly\n')
-
-
-def get_user_input():
-    """ python2 and 3 compatible function that gets raw user input
-    """
-    try: return raw_input()
-    except NameError:
-        pass
-    return input()
 
 
 def dialog_yes_no(question, default_answer=None):
@@ -439,7 +438,7 @@ def dialog_yes_no(question, default_answer=None):
 
     while True:
         sys.stdout.write(question + ' ' + prompt + ' ')
-        answer = get_user_input().lower()
+        answer = input().lower()
         if answer == '' and default_answer is not None:
             return valid_answers[default_answer]
         elif answer in valid_answers:
@@ -457,7 +456,7 @@ def main():
     else:
         search.case_insensitive = ''
 
-    # Options for `find` =============================
+    # Options for find =============================
     # File types / names ------------------
     if search.args.file_type:
         search.create_file_types()
@@ -478,7 +477,7 @@ def main():
     if search.args.last_modified:
        search.add_time_filter()
 
-    # Options for `grep` =============================
+    # Options for grep =============================
     if search.args.more_context is not None:
         search.grep_arg += '--before-context=' + search.args.more_context + ' '
         search.grep_arg += '--after-context=' + search.args.more_context + ' '
