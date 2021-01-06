@@ -50,6 +50,51 @@ if sys.version_info.major == 2:
     input = raw_input
 
 
+def main():
+    search = Search()
+    search.parse_arguments()
+
+    if not search.args.case_sensitive:
+        search.case_insensitive = 'i'
+    else:
+        search.case_insensitive = ''
+
+    # Options for find =============================
+    # File types / names ------------------
+    if search.args.file_type:
+        search.create_file_types()
+
+        file_type_defs = search.find_file_type_def_or_exit()
+        if len(file_type_defs) == 1 and file_type_defs[0]['size']:
+            search.find_arg += '-size ' + file_type_defs[0]['size'] + ' '
+        search.add_file_ext_filter(file_type_defs, search.args.file_pattern)
+    else:
+        search.find_arg+='-' + search.case_insensitive + 'name \'' + search.args.file_pattern + '\' '
+        #if search.args.regex:
+        #    search.find_arg+='-regextype "posix-extended" -' + search.case_insensitive \
+        #                + 'regex \'' + search.args.file_pattern + '\' '
+        #else:
+        #    search.find_arg+='-' + search.case_insensitive + 'name \'' + search.args.file_pattern + '\' '
+
+    # Time --------------------------------
+    if search.args.last_modified:
+       search.add_time_filter()
+
+    # Options for grep =============================
+    if search.args.more_context is not None:
+        search.grep_arg += '--before-context=' + search.args.more_context + ' '
+        search.grep_arg += '--after-context=' + search.args.more_context + ' '
+
+    # Search path(s) =================================
+    if search.args.default_path_file is not None:
+        search.parse_default_paths_from_file( search.args.default_path_file )
+    else:
+        search.paths = [ search.args.search_path ]
+
+    # Finally ========================================
+    search.invoke_command()
+
+
 class Search(object):
     """ Core class of this search script. Implements methods that parse user input
     and methods that create comprehensive command line arguments which are
@@ -445,51 +490,6 @@ def dialog_yes_no(question, default_answer=None):
             return valid_answers[answer]
         else:
             print("Please respond with 'yes' or 'no'")
-
-
-def main():
-    search = Search()
-    search.parse_arguments()
-
-    if not search.args.case_sensitive:
-        search.case_insensitive = 'i'
-    else:
-        search.case_insensitive = ''
-
-    # Options for find =============================
-    # File types / names ------------------
-    if search.args.file_type:
-        search.create_file_types()
-
-        file_type_defs = search.find_file_type_def_or_exit()
-        if len(file_type_defs) == 1 and file_type_defs[0]['size']:
-            search.find_arg += '-size ' + file_type_defs[0]['size'] + ' '
-        search.add_file_ext_filter(file_type_defs, search.args.file_pattern)
-    else:
-        search.find_arg+='-' + search.case_insensitive + 'name \'' + search.args.file_pattern + '\' '
-        #if search.args.regex:
-        #    search.find_arg+='-regextype "posix-extended" -' + search.case_insensitive \
-        #                + 'regex \'' + search.args.file_pattern + '\' '
-        #else:
-        #    search.find_arg+='-' + search.case_insensitive + 'name \'' + search.args.file_pattern + '\' '
-
-    # Time --------------------------------
-    if search.args.last_modified:
-       search.add_time_filter()
-
-    # Options for grep =============================
-    if search.args.more_context is not None:
-        search.grep_arg += '--before-context=' + search.args.more_context + ' '
-        search.grep_arg += '--after-context=' + search.args.more_context + ' '
-
-    # Search path(s) =================================
-    if search.args.default_path_file is not None:
-        search.parse_default_paths_from_file( search.args.default_path_file )
-    else:
-        search.paths = [ search.args.search_path ]
-
-    # Let's do it ====================================
-    search.invoke_command()
 
 
 if __name__ == '__main__':
