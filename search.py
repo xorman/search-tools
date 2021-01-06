@@ -53,46 +53,9 @@ if sys.version_info.major == 2:
 def main():
     search = Search()
     search.parse_arguments()
-
-    # Options for find =============================
-    # File types / names ------------------
-    if search.args.file_type:
-        # Search for one or more categories of file types.
-        # Categories can be text, image, audio OR not-text.
-        search.create_file_type_categories()
-
-        file_type_cats = search.find_file_type_cat_or_exit()
-        if len(file_type_cats) == 1 and file_type_cats[0]['size'] != '':
-            # `find` only takes one -size argument. Therefore,
-            # it is only passed if the user searches one of our
-            # file type categories.
-            search.find_arg += '-size ' + file_type_cats[0]['size'] + ' '
-        search.add_file_ext_filter(file_type_cats, search.args.file_pattern)
-    else:
-        # Search for one file pattern (e.g. *.py)
-        search.find_arg+='-' + search.case_insensitive + 'name \'' + search.args.file_pattern + '\' '
-        #if search.args.regex:
-        #    search.find_arg+='-regextype "posix-extended" -' + search.case_insensitive \
-        #                + 'regex \'' + search.args.file_pattern + '\' '
-        #else:
-        #    search.find_arg+='-' + search.case_insensitive + 'name \'' + search.args.file_pattern + '\' '
-
-    # Time --------------------------------
-    if search.args.last_modified:
-       search.add_time_filter()
-
-    # Options for grep =============================
-    if search.args.more_context is not None:
-        search.grep_arg += '--before-context=' + search.args.more_context + ' '
-        search.grep_arg += '--after-context=' + search.args.more_context + ' '
-
-    # Search path(s) =================================
-    if search.args.default_path_file is not None:
-        search.parse_default_paths_from_file( search.args.default_path_file )
-    else:
-        search.paths = [ search.args.search_path ]
-
-    # Finally ========================================
+    search.prepare_options_for_find()
+    search.prepare_options_for_grep()
+    search.prepare_list_of_paths_to_search_in()
     search.invoke_command()
 
 
@@ -122,6 +85,12 @@ class Search(object):
             self.paths_config_path = '~/.' + os.path.splitext(self.name)[0] + '/default-paths/'
     def parse_arguments(self):
         parse_arguments(self)
+    def prepare_options_for_find(self):
+        prepare_options_for_find(self)
+    def prepare_options_for_grep(self):
+        prepare_options_for_grep(self)
+    def prepare_list_of_paths_to_search_in(self):
+        prepare_list_of_paths_to_search_in(self)
     def create_file_type_categories(self):
         create_file_type_categories(self)
     def find_file_type_cat_or_exit(self):
@@ -225,6 +194,52 @@ def parse_arguments(self):
         self.case_insensitive = 'i'
     else:
         self.case_insensitive = ''
+
+
+def prepare_options_for_find(self):
+    """ Prepare the options that are passed to the find executable. """
+    # File types / names ------------------
+    if self.args.file_type:
+        # Search for one or more categories of file types.
+        # Categories can be text, image, audio OR not-text.
+        self.create_file_type_categories()
+
+        file_type_cats = self.find_file_type_cat_or_exit()
+        if len(file_type_cats) == 1 and file_type_cats[0]['size'] != '':
+            # `find` only takes one -size argument. Therefore,
+            # it is only passed if the user searches one of our
+            # file type categories.
+            self.find_arg += '-size ' + file_type_cats[0]['size'] + ' '
+        self.add_file_ext_filter(file_type_cats, self.args.file_pattern)
+    else:
+        # Search for one file pattern (e.g. *.py)
+        self.find_arg+='-' + self.case_insensitive + 'name \'' + self.args.file_pattern + '\' '
+        #if self.args.regex:
+        #    self.find_arg+='-regextype "posix-extended" -' + self.case_insensitive \
+        #                + 'regex \'' + self.args.file_pattern + '\' '
+        #else:
+        #    self.find_arg+='-' + self.case_insensitive + 'name \'' + self.args.file_pattern + '\' '
+
+    # Time --------------------------------
+    if self.args.last_modified:
+       self.add_time_filter()
+
+
+def prepare_options_for_grep(self):
+    """ Prepare the options that are passed to the grep executable. """
+    if self.args.more_context is not None:
+        self.grep_arg += '--before-context=' + self.args.more_context + ' '
+        self.grep_arg += '--after-context=' + self.args.more_context + ' '
+
+
+def prepare_list_of_paths_to_search_in(self):
+    """ Prepares the paths in which `find` will search. """
+    if self.args.default_path_file is not None:
+        # `find` will be invoked for each path
+        self.parse_default_paths_from_file( self.args.default_path_file )
+    else:
+        # `find` will be invoked once
+        self.paths = [ self.args.search_path ]
 
 
 def create_file_type_categories(self):
