@@ -53,8 +53,8 @@ if sys.version_info.major == 2:
 def main():
     search = Search()
     search.parse_arguments()
-    search.prepare_options_for_find()
-    search.prepare_options_for_grep()
+    search.prepare_arguments_for_find()
+    search.prepare_arguments_for_grep()
     search.prepare_list_of_paths_to_search_in()
     search.invoke_command()
 
@@ -65,11 +65,8 @@ class Search(object):
     finally processed by the applications find and grep.
     """
     def __init__(self):
-        self.find_arg = '-not -path \'*/.git/*\' '
-        self.grep_arg = '-exec grep --color=always '
-        self.grep_arg += '--with-filename --line-number '
-        self.grep_file_size_threshold = '-size -2000k '
         self.name = os.path.basename(sys.argv[0])
+        self.grep_file_size_threshold = '-size -2000k '
         if platform.system() == 'Windows':
             self.grep_terminator = ';'
             tmp = '~/' + os.path.splitext(self.name)[0]
@@ -85,10 +82,10 @@ class Search(object):
             self.paths_config_path = '~/.' + os.path.splitext(self.name)[0] + '/default-paths/'
     def parse_arguments(self):
         parse_arguments(self)
-    def prepare_options_for_find(self):
-        prepare_options_for_find(self)
-    def prepare_options_for_grep(self):
-        prepare_options_for_grep(self)
+    def prepare_arguments_for_find(self):
+        prepare_arguments_for_find(self)
+    def prepare_arguments_for_grep(self):
+        prepare_arguments_for_grep(self)
     def prepare_list_of_paths_to_search_in(self):
         prepare_list_of_paths_to_search_in(self)
     def create_file_type_categories(self):
@@ -196,8 +193,9 @@ def parse_arguments(self):
         self.case_insensitive = ''
 
 
-def prepare_options_for_find(self):
+def prepare_arguments_for_find(self):
     """ Prepare the options that are passed to the find executable. """
+    self.find_arg = '-not -path \'*/.git/*\' '
     # File types / names ------------------
     if self.args.file_type:
         # Search for one or more categories of file types.
@@ -225,8 +223,10 @@ def prepare_options_for_find(self):
        self.add_time_filter()
 
 
-def prepare_options_for_grep(self):
+def prepare_arguments_for_grep(self):
     """ Prepare the options that are passed to the grep executable. """
+    self.grep_arg = '-exec grep --color=always '
+    self.grep_arg += '--with-filename --line-number '
     if self.args.more_context is not None:
         self.grep_arg += '--before-context=' + self.args.more_context + ' '
         self.grep_arg += '--after-context=' + self.args.more_context + ' '
