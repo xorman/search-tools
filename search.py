@@ -435,6 +435,7 @@ def execute_and_print_stdout_while_running(command):
     # --------------------------------
     # - shell=False
     #     - Parameter command is passed to cmd.exe
+    #     - command is of type list
     # - shell=True
     #     - Parameter command is passed to bash
     #     - command is of type string
@@ -443,7 +444,9 @@ def execute_and_print_stdout_while_running(command):
     #       Therefore, 'Quote\'' is used instead of "Quote'" in this script.
     # Popen() on Linux
     # ----------------
-    # command is of type list. TODO: I think these worked:
+    # - shell=False
+    #     - command is of type list
+    # TODO: I think these worked:
     # cmd = [ 'find', '.', '\\(',  '-iname', '\\*.sh', '-o', '-iname', '\\*.py', '\\)' ]
     # or ...
     # cmd = [ 'find', '.', '\\(',  '-iname', '\'*.sh\'', '-o', '-iname', '\'*.py\'', '\\)' ]
@@ -462,6 +465,9 @@ def execute_and_print_stdout_while_running(command):
             sys.stdout.flush()
         except:
             sys.stderr.write('Cannot process line properly\n')
+
+    # exit_code = process.wait()
+    # if exit_code != 0:
 
 
 def dialog_yes_no(question, default_answer=None):
